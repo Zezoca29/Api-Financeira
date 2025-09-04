@@ -1,4 +1,4 @@
-ackage com.financial.application.dto;
+package com.financial.application.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

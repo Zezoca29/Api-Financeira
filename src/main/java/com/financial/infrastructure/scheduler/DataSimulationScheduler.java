@@ -31,46 +31,66 @@ public class DataSimulationScheduler {
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
     public void initializeData() {
-        log.info("Initializing sample data...");
-        
-        // Criar ativos iniciais se não existirem
-        createSampleAssetsIfNeeded();
-        createHistoricalDataIfNeeded();
-        
-        log.info("Sample data initialization completed");
+        log.info("Scheduling data initialization...");
+        // Delay initialization to ensure database tables are created
+        // Use a scheduled method instead of immediate execution
+    }
+
+    @Scheduled(initialDelay = 10000, fixedRate = Long.MAX_VALUE) // Run once after 10 seconds
+    @Transactional
+    public void initializeDataDelayed() {
+        try {
+            log.info("Initializing sample data...");
+            
+            // Criar ativos iniciais se não existirem
+            createSampleAssetsIfNeeded();
+            createHistoricalDataIfNeeded();
+            
+            log.info("Sample data initialization completed");
+        } catch (Exception e) {
+            log.error("Error during data initialization: {}", e.getMessage(), e);
+        }
     }
 
     @Scheduled(fixedRate = 30000) // A cada 30 segundos
     public void simulateRealTimeData() {
-        List<Asset> assets = assetRepository.findByActiveTrue();
-        
-        for (Asset asset : assets) {
-            simulatePriceMovement(asset);
-            createPriceHistoryEntry(asset);
+        try {
+            List<Asset> assets = assetRepository.findByActiveTrue();
+            
+            for (Asset asset : assets) {
+                simulatePriceMovement(asset);
+                createPriceHistoryEntry(asset);
+            }
+            
+            log.debug("Real-time data simulation completed for {} assets", assets.size());
+        } catch (Exception e) {
+            log.debug("Skipping real-time simulation, database not ready: {}", e.getMessage());
         }
-        
-        log.debug("Real-time data simulation completed for {} assets", assets.size());
     }
 
     private void createSampleAssetsIfNeeded() {
-        if (assetRepository.count() == 0) {
-            // Ações brasileiras
-            assetService.createOrUpdateAsset("PETR4", "Petrobras PN", "STOCKS", BigDecimal.valueOf(25.50));
-            assetService.createOrUpdateAsset("VALE3", "Vale ON", "STOCKS", BigDecimal.valueOf(65.80));
-            assetService.createOrUpdateAsset("ITUB4", "Itaú Unibanco PN", "STOCKS", BigDecimal.valueOf(22.30));
-            assetService.createOrUpdateAsset("BBDC4", "Bradesco PN", "STOCKS", BigDecimal.valueOf(18.90));
-            assetService.createOrUpdateAsset("WEGE3", "WEG ON", "STOCKS", BigDecimal.valueOf(45.20));
-            
-            // Criptomoedas
-            assetService.createOrUpdateAsset("BTC", "Bitcoin", "CRYPTO", BigDecimal.valueOf(43250.00));
-            assetService.createOrUpdateAsset("ETH", "Ethereum", "CRYPTO", BigDecimal.valueOf(2680.50));
-            assetService.createOrUpdateAsset("ADA", "Cardano", "CRYPTO", BigDecimal.valueOf(0.45));
-            
-            // Índices
-            assetService.createOrUpdateAsset("IBOV", "Ibovespa", "INDEX", BigDecimal.valueOf(125800.0));
-            assetService.createOrUpdateAsset("IFIX", "Índice de FIIs", "INDEX", BigDecimal.valueOf(2850.0));
-            
-            log.info("Created {} sample assets", assetRepository.count());
+        try {
+            if (assetRepository.count() == 0) {
+                // Ações brasileiras
+                assetService.createOrUpdateAsset("PETR4", "Petrobras PN", "STOCKS", BigDecimal.valueOf(25.50));
+                assetService.createOrUpdateAsset("VALE3", "Vale ON", "STOCKS", BigDecimal.valueOf(65.80));
+                assetService.createOrUpdateAsset("ITUB4", "Itaú Unibanco PN", "STOCKS", BigDecimal.valueOf(22.30));
+                assetService.createOrUpdateAsset("BBDC4", "Bradesco PN", "STOCKS", BigDecimal.valueOf(18.90));
+                assetService.createOrUpdateAsset("WEGE3", "WEG ON", "STOCKS", BigDecimal.valueOf(45.20));
+                
+                // Criptomoedas
+                assetService.createOrUpdateAsset("BTC", "Bitcoin", "CRYPTO", BigDecimal.valueOf(43250.00));
+                assetService.createOrUpdateAsset("ETH", "Ethereum", "CRYPTO", BigDecimal.valueOf(2680.50));
+                assetService.createOrUpdateAsset("ADA", "Cardano", "CRYPTO", BigDecimal.valueOf(0.45));
+                
+                // Índices
+                assetService.createOrUpdateAsset("IBOV", "Ibovespa", "INDEX", BigDecimal.valueOf(125800.0));
+                assetService.createOrUpdateAsset("IFIX", "Índice de FIIs", "INDEX", BigDecimal.valueOf(2850.0));
+                
+                log.info("Created {} sample assets", assetRepository.count());
+            }
+        } catch (Exception e) {
+            log.warn("Could not create sample assets, database might not be ready: {}", e.getMessage());
         }
     }
 
